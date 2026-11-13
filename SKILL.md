@@ -21,9 +21,9 @@ Most tokens are spent by the chat itself, not by its subagents. So the most impo
 
 | Chat runs on | Five small tasks | Seven-part job with hidden tests | Top-model weekly limit |
 |---|---|---|---|
-| Fable 5.2 medium | $1.36 | $2.26 | fully charged |
-| Opus 5.5 medium | $1.13 | $1.54 | not charged |
-| Sonnet 5.5 high | $0.75 | $0.85 | not charged |
+| Fable 5.2 medium | 1.36 USD | 2.26 USD | fully charged |
+| Opus 5.5 medium | 1.13 USD | 1.54 USD | not charged |
+| Sonnet 5.5 high | 0.75 USD | 0.85 USD | not charged |
 
 All three passed every hidden check in the seven-part job (231 + 8 + 14 cases). The only difference: Sonnet's documentation was about half as detailed. For really hard code (levels 5 and 6 below) this tie is not proven. There the ladder figures count.
 
@@ -106,15 +106,15 @@ Delegating is not free. Every agent has a fixed cost: its start-up fee (it first
 
 | Agent on | Fixed cost per agent (start-up fee + your brief + its report + your check) | Pays off from about |
 |---|---|---|
-| `haiku` | $0.15 | 3 tool calls, or as soon as there is a lot to read |
-| `sonnet` | $0.25 | 8 tool calls |
-| `opus` | $0.40 | 20 tool calls |
-| `fable` | $0.85 | never saves cost. Only for very long runs (50+ calls), to keep your own history small |
+| `haiku` | 0.15 USD | 3 tool calls, or as soon as there is a lot to read |
+| `sonnet` | 0.25 USD | 8 tool calls |
+| `opus` | 0.40 USD | 20 tool calls |
+| `fable` | 0.85 USD | never saves cost. Only for very long runs (50+ calls), to keep your own history small |
 
-The fixed costs are measured, the thresholds are extrapolated from them. For comparison: a small piece done yourself costs $0.10 to $0.30. Two comparison tests, same result each time:
+The fixed costs are measured, the thresholds are extrapolated from them. For comparison: a small piece done yourself costs 0.10 USD to 0.30 USD. Two comparison tests, same result each time:
 
-- Five small tasks: "all yourself" $1.36, "four agents" $4.61.
-- A large clean-up (48 modules, 270 call sites to convert, 48 doc files with 384 examples): done yourself $1.79 in 11 steps, because the bulk work ran as a script.
+- Five small tasks: "all yourself" 1.36 USD, "four agents" 4.61 USD.
+- A large clean-up (48 modules, 270 call sites to convert, 48 doc files with 384 examples): done yourself 1.79 USD in 11 steps, because the bulk work ran as a script.
 
 If your main chat is Opus or Sonnet instead of Fable, the thresholds are higher still. Then almost only Haiku for reading pays off.
 
@@ -171,9 +171,9 @@ More figures (all 20 settings, 10 more benchmarks, prices, speed): `aa-data.md` 
 
 - **On subscription plans the top model often has its own weekly limit.** If your environment has a usage tool (in the Claude desktop app: `mcp__ccd_session_mgmt__get_usage`), check it at the start and after large runs. **Tight means more than 70% used.** Then: level 4 becomes Opus high, level 5 becomes Opus xhigh, level 6 means ask the user first. Without such a tool, treat the limit as not tight and ask the user about it before level 6.
 - **Short runs are the biggest lever.** Every step of an agent reads its whole history again. So: split, exact paths in the brief, one build per run, long output only as a summary.
-- **Start-up fee alone** (the part of the fixed cost an agent pays before it does anything; measured, about 72k tokens of base context): Haiku $0.01, Sonnet $0.09, Opus $0.18 to $0.36, Fable $0.35 to $0.74. Your brief, its report and your check come on top and give the fixed cost in "Do it yourself or delegate".
+- **Start-up fee alone** (the part of the fixed cost an agent pays before it does anything; measured, about 72k tokens of base context): Haiku 0.01 USD, Sonnet 0.09 USD, Opus 0.18 USD to 0.36 USD, Fable 0.35 USD to 0.74 USD. Your brief, its report and your check come on top and give the fixed cost in "Do it yourself or delegate".
 - **Keep your own context small:** do not read large files or logs yourself, accept only the short report from an agent.
-- **A long main chat is the biggest consumer.** Every step reads the whole history again. Measured: one session of 274 steps at an average of 295k tokens of history cost $52 on the top model alone. If your history is above roughly 200k tokens and a lot of work is still ahead: propose a new chat and write the handover prompt for it (section "Handover prompt").
+- **A long main chat is the biggest consumer.** Every step reads the whole history again. Measured: one session of 274 steps at an average of 295k tokens of history cost 52 USD on the top model alone. If your history is above roughly 200k tokens and a lot of work is still ahead: propose a new chat and write the handover prompt for it (section "Handover prompt").
 - **Few steps of your own.** Every wake-up reads your whole history again. While agents are still running, answer an interim report with one short line at most. Check all results at the end with **one** combined command instead of one per agent.
 - **Write short.** Output is the most expensive part: briefs as long as needed, reports without tables and protocols unless the user wants them.
 
