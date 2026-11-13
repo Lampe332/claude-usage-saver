@@ -12,14 +12,19 @@ I used to leave every chat on the biggest model. Then I ran the same seven-part 
 
 Every check passed on all three, and the cheapest run cost 62% less than the dearest. It was a job all three could handle, and it was not quite a tie: Sonnet's docs came out about half as detailed.
 
-All three runs had this skill loaded. The saving comes from the model, not from the skill. What the skill does is tell you which model is enough before you spend the money. In the Fable run its first line was "Opus 5.5 medium would do for this".
-
-Fable 5.2 is the top Claude model as of November 2026, one tier above Opus.
-
 > [!NOTE]
 > Early project. One author, one machine, single runs. Costs are API list prices applied to the token counts in Claude Code's own transcripts. Read [what the numbers do and don't show](#what-the-numbers-do-and-dont-show) before you rely on them.
 
 ## Install
+
+The quickest way is to let Claude Code do it. Paste this into any chat:
+
+```
+Install this skill: https://github.com/Lampe332/claude-usage-saver
+Clone it into ~/.claude/skills/usage-saver
+```
+
+Or run it yourself:
 
 ```bash
 git clone https://github.com/Lampe332/claude-usage-saver ~/.claude/skills/usage-saver
@@ -31,7 +36,7 @@ On Windows PowerShell:
 git clone https://github.com/Lampe332/claude-usage-saver "$env:USERPROFILE\.claude\skills\usage-saver"
 ```
 
-Open a new chat in Claude Code and type `/usage-saver` followed by your task. The two helper scripts are optional and want Node 18 or newer.
+The folder has to be called `usage-saver`. Then open a new chat in Claude Code and type `/usage-saver` followed by your task. The two helper scripts are optional and want Node 18 or newer.
 
 To update: `git -C ~/.claude/skills/usage-saver pull`. To remove it, delete that folder.
 
@@ -64,6 +69,12 @@ From there it keeps the bill down in four ways:
 - Past roughly 200k tokens of history it proposes a new chat and writes the handover prompt for it, because every step re-reads the whole history.
 
 Every agent result gets a spot check before it is reported as done.
+
+## Where the saving comes from
+
+All three runs in the table at the top had this skill loaded. The saving comes from the model, not from the skill. What the skill does is tell you which model is enough before you spend the money. In the Fable run its first line was "Opus 5.5 medium would do for this".
+
+Fable 5.2 is the top Claude model as of November 2026, one tier above Opus.
 
 ## What it does not do
 
