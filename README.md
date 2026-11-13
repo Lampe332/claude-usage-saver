@@ -1,30 +1,49 @@
 # Usage Saver
 
-A Claude Code skill that tells you which Claude model and effort a job needs before the work starts, and asks before it runs on the wrong one.
+A Claude Code skill that turns your chat into a planner. The planner picks the right Claude model for every piece of work, so you stop paying top-model prices for routine jobs.
+
+Three words you need:
+
+- **Planner**: the chat you are talking to. It organises the work.
+- **Subagent**: a helper Claude that the planner starts for one piece of work. It can run on a different, cheaper model than the chat.
+- **Effort**: how hard a model thinks, from low to high. More effort costs more.
 
 ## What it does
 
-You type `/usage-saver` and your task. Then the skill:
+You type `/usage-saver` and your task. From then on the chat works as a planner:
 
-1. Reads the task and says which Claude model and effort is enough for it.
-2. Stops and asks if your chat runs on a different model: start here anyway, switch the model, or get a ready-made prompt for a new chat.
-3. Does the work. Small pieces it does itself. Only large pieces (lots of reading, long runs) go to subagents, each on the cheapest model that is good enough.
-4. Spot-checks every result before it reports "done".
+1. **It checks the chat's own model.** It tells you which Claude model and effort is enough for this task. If your chat runs on a different one, it stops and asks what you want: start here anyway, switch the model, or get a ready-made prompt for a new chat.
+2. **It splits the task into pieces.**
+3. **Small pieces it does itself.** Fixing a typo, changing one function, running the tests. A subagent would cost more than the work.
+4. **Large pieces go to subagents.** Reading a 12,000-line log, changing 50 files, a long build-and-fix loop. Each subagent gets the cheapest model that is good enough for its piece.
+5. **It checks every result** before it tells you "done". If a result is wrong, a fresh subagent gets the exact defect to fix.
 
-## Why
+```mermaid
+flowchart TD
+    A["You type /usage-saver and your task"] --> B{"Is this chat on<br>the right model?"}
+    B -- "no" --> C["It asks you: start here,<br>switch model, or new chat"]
+    B -- "yes" --> D["It splits the task into pieces"]
+    C --> D
+    D --> E{"Small or<br>large piece?"}
+    E -- "small" --> F["The planner does it itself"]
+    E -- "large" --> G["A subagent does it, on the cheapest<br>model that is good enough"]
+    F --> H["The planner checks the result"]
+    G --> H
+    H --> I["It reports to you"]
+```
 
-I used to leave every chat on the biggest model. Then I ran the same seven-part coding job three times and scored each run with hidden tests that none of the models got to see:
+Which model a subagent gets:
 
-| Chat ran on | Cost | Hidden checks passed |
-|---|---|---|
-| Fable 5.2, medium effort | $2.26 | 253 of 253 |
-| Opus 5.5, medium effort | $1.54 | 253 of 253 |
-| Sonnet 5.5, high effort | $0.85 | 253 of 253 |
+| The piece is about | Model and effort |
+|---|---|
+| Searching, reading, collecting | Haiku 5.5, high |
+| Text, docs, research | Sonnet 5.5, high |
+| Normal code, builds, clear bug fixes | Opus 5.5, medium |
+| Unfamiliar code, unclear bugs, architecture | Fable 5.2, low to high |
 
-Every check passed on all three, and the cheapest run cost 62% less than the dearest. It was a job all three could handle, and it was not quite a tie: Sonnet's docs came out about half as detailed.
+The choice follows benchmark figures from Artificial Analysis, which ship with the skill in [aa-data.md](aa-data.md). Fable is the top model. The planner picks it for quality on hard pieces, never to save money.
 
-> [!NOTE]
-> Early project. One author, one machine, single runs. Costs are API list prices applied to the token counts in Claude Code's own transcripts. Read [what the numbers do and don't show](#what-the-numbers-do-and-dont-show) before you rely on them.
+If you want a team, say so. "Start 3 agents in parallel" or "one searches, one works, one checks" both work. The planner tells you in one sentence when that costs more, then does it.
 
 ## Install
 
@@ -47,11 +66,11 @@ On Windows PowerShell:
 git clone https://github.com/Lampe332/claude-usage-saver "$env:USERPROFILE\.claude\skills\usage-saver"
 ```
 
-The folder has to be called `usage-saver`. Then open a new chat in Claude Code and type `/usage-saver` followed by your task. The two helper scripts are optional and want Node 18 or newer.
+The folder has to be called `usage-saver`. Then open a new chat and type `/usage-saver` followed by your task. Tested on Windows, in the Claude Code desktop app and in the command-line version.
 
 To update: `git -C ~/.claude/skills/usage-saver pull`. To remove it, delete that folder.
 
-## What it looks like
+## What you see
 
 ```
 > /usage-saver We're rebuilding the app in four phases. Start with phase 1.
@@ -60,8 +79,8 @@ Usage Saver on. Recommended for this job: Opus 5.5 medium
 (project in phases, builder agents do the work).
 This chat runs on: Fable 5.2.
 
-As a planner Fable costs roughly 20 to 45% more than Opus
-and charges the top-model limit.
+Using Fable as the planner costs roughly 20 to 45% more than Opus
+and counts against your Fable weekly limit.
 
   1. Switch (recommended)   change the model in the menu, then write "go"
   2. Start here             carry on in this chat as it is
@@ -70,94 +89,65 @@ and charges the top-model limit.
 
 If the chat is already on a fitting model you get one line, "Fits, starting.", and it goes to work.
 
-"Top-model limit" refers to subscription plans, where the top model has its own weekly allowance. On an API key, read it as "the expensive one".
+Fable 5.2 is the top Claude model as of November 2026, one tier above Opus. On subscription plans Fable has its own weekly usage limit, so every chat that runs on it uses that limit up.
 
-From there it keeps the bill down in four ways:
+## Why it works this way
 
-- It does small pieces itself. No subagent for a two-line fix.
-- Bulk work becomes a script. Converting 270 call sites across 48 files took 11 steps that way.
-- It delegates only what is large: heavy reading goes to Haiku, long runs to Sonnet or Opus, each at the lowest effort that is enough.
-- Past roughly 200k tokens of history it proposes a new chat and writes the handover prompt for it, because every step re-reads the whole history.
+I measured three things. All costs are API list prices applied to the token counts in Claude Code's own transcripts.
 
-Every agent result gets a spot check before it is reported as done.
+> [!NOTE]
+> Early project. One author, one machine, single runs. See [About the numbers](#about-the-numbers) before you rely on them.
 
-## Where the saving comes from
+**1. The model of the chat matters most.** I ran the same seven-part coding job three times and scored each run with hidden tests that none of the models got to see.
 
-All three runs in the table at the top had this skill loaded. The saving comes from the model, not from the skill. What the skill does is tell you which model is enough before you spend the money. In the Fable run its first line was "Opus 5.5 medium would do for this".
-
-Fable 5.2 is the top Claude model as of November 2026, one tier above Opus.
-
-## What it does not do
-
-It cannot switch the model for you. Claude Code does not let a chat change its own model, so the click in the model menu is yours.
-
-It will not make a chat cheaper that is already on the right model. There it only adds overhead, because loading the skill costs about 6k tokens and the announcement costs a step:
-
-| Job, chat on Fable in both runs | Without the skill | With the skill |
+| Chat ran on | Cost | Hidden checks passed |
 |---|---|---|
-| Five small tasks | $1.36 | $1.78 (+31%) |
-| Large clean-up of 48 modules | $1.79 | $1.91 (+7%) |
+| Fable 5.2, medium effort | $2.26 | 253 of 253 |
+| Opus 5.5, medium effort | $1.54 | 253 of 253 |
+| Sonnet 5.5, high effort | $0.85 | 253 of 253 |
 
-Use it when you start something and are not sure which model it needs, or on projects that run for hours. Skip it for one-liners.
+Every check passed on all three, and the cheapest run cost 62% less than the dearest. It was not quite a tie: Sonnet's docs came out about half as detailed. On five small tasks the gap was smaller: $1.36 on Fable, $1.13 on Opus, $0.75 on Sonnet. This is why step 1 exists.
 
-It only knows Claude models.
-
-It is a prompt, not code. The model reads the ladder and the rules in `SKILL.md` and judges your job against them. Nothing enforces the outcome.
-
-It is not proven on really hard code. Every test job was one that all three models could finish. For unfamiliar code, unclear bugs and architecture the skill still recommends the top model, and that advice rests on the benchmark figures, not on a test of mine.
-
-## Why it does not fan out to subagents
-
-The first version did what most "orchestrator" setups do: plan in the main chat, hand every piece to a subagent on the cheapest model that might manage. I measured it.
+**2. Sending everything to subagents costs more, not less.** The first version of this skill handed every piece to a subagent. On five small tasks that cost 3.4 times as much as letting the chat do them:
 
 | Five small tasks | Cost |
 |---|---|
 | The chat does everything itself | $1.36 |
 | Planner plus four subagents | $4.61 |
 
-That is 3.4 times the price for the same output. A subagent reads the whole base context before it does anything. The planner then pays three more times: for writing the brief, for being woken when the agent reports, and for checking the result.
+The reason is a start-up fee. Before a subagent does anything, it has to read everything Claude Code loads at the start of a chat (tools, skills, settings). Then the planner pays three more times: for writing the task description, for waking up when the subagent reports, and for checking the result.
 
-| Subagent on | Start-up fee | With brief, report and check | Pays off from about |
+A step below means one action, such as reading a file or running a command.
+
+| Subagent on | Start-up fee | With task description, report and check | Pays off from about |
 |---|---|---|---|
-| Haiku 5.5 | $0.01 | $0.15 | 3 tool calls, or lots of reading |
-| Sonnet 5.5 | $0.09 | $0.25 | 8 tool calls |
-| Opus 5.5 | $0.18 to $0.36 | $0.40 | 20 tool calls |
+| Haiku 5.5 | $0.01 | $0.15 | 3 steps, or lots of reading |
+| Sonnet 5.5 | $0.09 | $0.25 | 8 steps |
+| Opus 5.5 | $0.18 to $0.36 | $0.40 | 20 steps |
 | Fable 5.2 | $0.35 to $0.74 | $0.85 | never, on cost alone |
 
-The fees are measured on a setup with about 72k tokens of base context (many tools and skills installed). The "pays off from" column is extrapolated from them, not tested call by call. Your base context is probably different, which is what `cost.mjs` is for.
+This is why steps 3 and 4 exist: small pieces stay with the planner, large ones go out.
 
-So the rule in the skill is: do it yourself, unless there is a lot to read, the run is long, an independent check is needed, or you asked for a team.
+**3. Long runs are the real cost.** Every step re-reads the whole conversation so far, so a long chat gets more expensive with every step. On a real multi-phase app project the planner chat was 14% of the bill and the subagents that did the building were 86%. One subagent run of 160 steps cost $27 alone. So the planner cuts work into runs of about 100 steps and proposes a new chat when the current one gets long.
 
-## The model ladder
+## When not to use it
 
-When the skill does delegate, it starts at level 3 and moves down or up for a reason it has to state.
+- **For one-liners.** Loading the skill costs about 6k tokens.
+- **When the chat is already on the right model and the job is small.** Then the skill only adds overhead. I measured +31% on five small tasks ($1.78 with the skill, $1.36 without) and +7% on a large clean-up ($1.91 against $1.79).
+- **If you want it to switch the model for you.** Claude Code does not let a chat change its own model. The click in the model menu is yours.
+- **For models other than Claude.**
 
-| Level | Model | Effort | $/task | Index | Code % | Terminal % | Used for |
-|---|---|---|---|---|---|---|---|
-| 1 | Haiku 5.5 | high | 0.16 | 30 | 23 | 22 | Searching, collecting, reading and summarising |
-| 2 | Sonnet 5.5 | high | 1.64 | 42 | 26 | 44 | Text, docs, research, simple scripts |
-| 3 | Opus 5.5 | medium | 2.45 | 48 | 33 | 53 | Routine code with a test or template, builds, clear bug fixes |
-| 4 | Fable 5.2 | low | 3.10 | 54 | 38 | 55 | Several files, own decisions on familiar ground |
-| 5 | Fable 5.2 | medium | 3.80 | 56 | 41 | 55 | Unfamiliar code, unknown formats, unclear causes |
-| 6 | Fable 5.2 | high | 9.08 | 62 | 49 | 60 | Costly errors that no check would show |
+Two more limits. It is a prompt, not code: the model reads the rules in `SKILL.md` and judges your task against them, and nothing enforces the outcome. And it is not proven on really hard code. Every test job was one that all three models could finish.
 
-The figures are from [Artificial Analysis](https://artificialanalysis.ai/providers/anthropic): cost per task of their Intelligence Index, the index itself, FrontierCode-AA 2.0 and Terminal-Bench 4.0. `$/task` is their cost for one task of their benchmark suite, not one of my jobs. Use it to compare rungs, not to predict a bill. All 20 model and effort combinations are in [aa-data.md](aa-data.md).
+## Two helper scripts
 
-Effort is the pricier dial. Going from Fable medium to Fable high costs 2.4 times as much, while going from Opus medium to Fable medium costs about 1.6 times. Some settings are plainly bad deals too: Sonnet at low or medium effort loses to Haiku at high on index, code and price.
-
-## Where the usage really goes
-
-I ran `cost.mjs` over a real day of work on a multi-phase app project. The planner chat, on Opus, was 14% of the bill. The builder agents were 86%. The most expensive single item was one builder run of 160 steps whose history grew to 539k tokens: $27.
-
-That is why the skill splits work into runs of about 100 steps at most and nags about long chats. The 100 is a rule of thumb from that one session, not a tested threshold. The planner's own model turned out to be a small lever. How it cuts up the long runs is the big one.
-
-## Measure your own sessions
+Both are optional and need Node 18 or newer.
 
 ```bash
 node ~/.claude/skills/usage-saver/cost.mjs
 ```
 
-It reads Claude Code's transcript files and prints what each recent session cost, main chat and subagents together, split by model:
+`cost.mjs` reads Claude Code's transcript files and prints what your recent sessions cost, main chat and subagents together, split by model. Nothing leaves your machine.
 
 ```
 2026-11-13 11:38  ·  $4.61  ·  4 subagents  ·  5 min  ·  "five small tasks, old version"
@@ -166,24 +156,20 @@ It reads Claude Code's transcript files and prints what each recent session cost
    sonnet   $   0.25      6 calls      0.5M read       7k output
 ```
 
-`node cost.mjs 12` shows the last twelve sessions, `node cost.mjs <text>` the ones whose first message contains that text. Nothing leaves your machine.
-
-## Refresh the benchmark data
-
 ```bash
 node ~/.claude/skills/usage-saver/aa-update.mjs
 ```
 
-This fetches the current Claude figures from Artificial Analysis and rewrites `aa-data.md`. When a new model generation ships, edit the `FAMILIES` list at the top of the script, run it, and update the ladder in `SKILL.md` to match. The script tells you when it sees model families it does not know.
+`aa-update.mjs` fetches the current Claude benchmark figures from Artificial Analysis and rewrites [aa-data.md](aa-data.md), which the planner uses to choose models. Run it when a new Claude model ships.
 
-One trap if you edit `SKILL.md`: never put a dollar sign directly before a digit. Claude Code replaces `$1`, `$2` and so on with the words typed after the command, so `$1.36` turns into garbage. Amounts in that file are written as `1.36 USD` for this reason.
+If you edit `SKILL.md`: never put a dollar sign directly before a digit. Claude Code replaces `$1`, `$2` and so on with the words typed after the command. That file writes amounts as `1.36 USD` for this reason.
 
-## What the numbers do and don't show
+## About the numbers
 
 - Every figure is a single run. I have not measured the spread between runs.
-- Dollars mean API list prices times the tokens recorded in the transcripts. A subscription may weigh models differently. On mine the top model has its own weekly limit, which is the main reason I care about moving work off it.
-- The test project is synthetic: a 48-module Node project generated by a script, with three planted bugs. The hidden tests were written before the runs and checked against a reference solution first.
-- The tests cover jobs all three models could do. They say nothing about where the smaller models start to fail.
+- One author, one machine. The start-up fees were measured with about 72k tokens of base context, and the "pays off from" column is extrapolated from them.
+- Dollars mean API list prices. A subscription may weigh models differently.
+- The test project is synthetic: a 48-module Node project generated by a script, with three planted bugs. The hidden tests were written before the runs and checked against a reference solution.
 - Models as of November 2026: Fable 5.2, Opus 5.5, Sonnet 5.5, Haiku 5.5.
 
 ## Credits
