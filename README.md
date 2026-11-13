@@ -165,6 +165,8 @@ node ~/.claude/skills/usage-saver/aa-update.mjs
 
 This fetches the current Claude figures from Artificial Analysis and rewrites `aa-data.md`. When a new model generation ships, edit the `FAMILIES` list at the top of the script, run it, and update the ladder in `SKILL.md` to match. The script tells you when it sees model families it does not know.
 
+One trap if you edit `SKILL.md`: never put a dollar sign directly before a digit. Claude Code replaces `$1`, `$2` and so on with the words typed after the command, so `$1.36` turns into garbage. Amounts in that file are written as `1.36 USD` for this reason.
+
 ## What the numbers do and don't show
 
 - Every figure is a single run. I have not measured the spread between runs.
