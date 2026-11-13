@@ -2,6 +2,17 @@
 
 A Claude Code skill that tells you which Claude model and effort a job needs before the work starts, and asks before it runs on the wrong one.
 
+## What it does
+
+You type `/usage-saver` and your task. Then the skill:
+
+1. Reads the task and says which Claude model and effort is enough for it.
+2. Stops and asks if your chat runs on a different model: start here anyway, switch the model, or get a ready-made prompt for a new chat.
+3. Does the work. Small pieces it does itself. Only large pieces (lots of reading, long runs) go to subagents, each on the cheapest model that is good enough.
+4. Spot-checks every result before it reports "done".
+
+## Why
+
 I used to leave every chat on the biggest model. Then I ran the same seven-part coding job three times and scored each run with hidden tests that none of the models got to see:
 
 | Chat ran on | Cost | Hidden checks passed |
